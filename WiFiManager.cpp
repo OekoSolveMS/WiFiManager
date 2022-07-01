@@ -242,6 +242,10 @@ void WiFiManager::_begin(){
   _hasBegun = true;
   // _usermode = WiFi.getMode();
 
+  // Has to be done at the start to ensure the esp_wifi_config is initalized,
+  // before we attempt to acces it in methods like getWiFiIsSaved().
+  WiFi.begin();
+
   #ifndef ESP32
   WiFi.persistent(false); // disable persistent so scannetworks and mode switching do not cause overwrites
   #endif
@@ -3624,8 +3628,10 @@ String WiFiManager::WiFi_SSID(bool persistent) const{
     #elif defined(ESP32)
     if(persistent){
       wifi_config_t conf;
-      esp_wifi_get_config(WIFI_IF_STA, &conf);
-      return String(reinterpret_cast<const char*>(conf.sta.ssid));
+      if(!esp_wifi_get_config(WIFI_IF_STA, &conf)) {
+        return String(reinterpret_cast<const char*>(conf.sta.ssid));
+      }
+      return String();
     }
     else {
       if(WiFiGenericClass::getMode() == WIFI_MODE_NULL){
